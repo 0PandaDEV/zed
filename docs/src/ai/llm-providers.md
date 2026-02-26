@@ -48,7 +48,7 @@ Ensure your credentials have the following permissions set up:
 
 Your IAM policy should look similar to:
 
-```json [settings]
+```json
 {
   "Version": "2012-10-17",
   "Statement": [
@@ -151,7 +151,9 @@ For the most up-to-date supported regions and models, refer to the [Supported Mo
 
 #### Extended Context Window {#bedrock-extended-context}
 
-Anthropic models on Bedrock support a [1M token extended context window](https://docs.anthropic.com/en/docs/build-with-claude/extended-context) beta. To enable this feature, add `"allow_extended_context": true` to your Bedrock configuration:
+> **Preview:** This feature is available in Zed Preview. It will be included in the next Stable release.
+
+Anthropic models on Bedrock support a 1M token extended context window through the `anthropic_beta` API parameter. To enable this feature, set `"allow_extended_context": true` in your Bedrock configuration:
 
 ```json [settings]
 {
@@ -166,9 +168,13 @@ Anthropic models on Bedrock support a [1M token extended context window](https:/
 }
 ```
 
-When enabled, Zed will include the `anthropic_beta` field in requests to Bedrock, enabling the 1M token context window for supported Anthropic models such as Claude Sonnet 4.5 and Claude Opus 4.6.
+Zed enables extended context for supported models (Claude Sonnet 4.5 and Claude Opus 4.6). Extended context usage may increase API costs—refer to AWS Bedrock pricing for details.
 
-> **Note**: Extended context usage may incur additional API costs. Refer to your AWS Bedrock pricing for details.
+#### Image Support {#bedrock-image-support}
+
+> **Preview:** This feature is available in Zed Preview. It will be included in the next Stable release.
+
+Bedrock models that support vision (Claude 3 and later, Amazon Nova Pro and Lite, Meta Llama 3.2 Vision models, Mistral Pixtral) can receive images in conversations and tool results.
 
 ### Anthropic {#anthropic}
 
@@ -214,7 +220,7 @@ Custom models will be listed in the model dropdown in the Agent Panel.
 
 You can configure a model to use [extended thinking](https://docs.anthropic.com/en/docs/about-claude/models/extended-thinking-models) (if it supports it) by changing the mode in your model's configuration to `thinking`, for example:
 
-```json [settings]
+```json
 {
   "name": "claude-sonnet-4-latest",
   "display_name": "claude-sonnet-4-thinking",
@@ -303,6 +309,15 @@ Here is an example of a custom Google AI model you could add to your Zed setting
   "language_models": {
     "google": {
       "available_models": [
+        {
+          "name": "gemini-3.1-pro-preview",
+          "display_name": "Gemini 3.1 Pro",
+          "max_tokens": 1000000,
+          "mode": {
+            "type": "thinking",
+            "budget_tokens": 24000
+          }
+        },
         {
           "name": "gemini-3-flash-preview",
           "display_name": "Gemini 3 Flash (Thinking)",
@@ -614,6 +629,25 @@ The OpenRouter API key will be saved in your keychain.
 
 Zed will also use the `OPENROUTER_API_KEY` environment variable if it's defined.
 
+> **Changed in Preview (v0.225).** See [release notes](/releases#0.225).
+
+When using OpenRouter as your assistant provider, you must explicitly select a model in your settings. OpenRouter no longer provides a default model selection.
+
+Configure your preferred OpenRouter model in `settings.json`:
+
+```json [settings]
+{
+  "agent": {
+    "default_model": {
+      "provider": "openrouter",
+      "model": "openrouter/auto"
+    }
+  }
+}
+```
+
+The `openrouter/auto` model automatically routes your requests to the most appropriate available model. You can also specify any model available through OpenRouter's API.
+
 #### Custom Models {#openrouter-custom-models}
 
 You can add custom models to the OpenRouter provider by adding the following to your Zed settings file ([how to edit](../configuring-zed.md#settings-files)):
@@ -762,7 +796,7 @@ The Zed agent comes pre-configured with common Grok models. If you wish to use a
 You can use a custom API endpoint for different providers, as long as it's compatible with the provider's API structure.
 To do so, add the following to your settings file ([how to edit](../configuring-zed.md#settings-files)):
 
-```json [settings]
+```json
 {
   "language_models": {
     "some-provider": {
