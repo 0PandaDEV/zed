@@ -375,6 +375,20 @@ pub struct StickyScrollContent {
     pub enabled: Option<bool>,
 }
 
+/// Smooth scroll related settings
+#[with_fallible_options]
+#[derive(Clone, Default, Debug, Serialize, Deserialize, JsonSchema, MergeFrom, PartialEq)]
+pub struct SmoothScrollContent {
+    /// Whether smooth scroll is enabled.
+    ///
+    /// Default: false
+    pub enabled: Option<bool>,
+    /// Defines how long the animation of the smooth scrolling runs.
+    ///
+    /// Default: 0.125
+    pub duration: Option<f32>,
+}
+
 /// Minimap related settings
 #[with_fallible_options]
 #[derive(Clone, Default, Debug, Serialize, Deserialize, JsonSchema, MergeFrom, PartialEq)]
