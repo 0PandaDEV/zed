@@ -81,12 +81,6 @@ pub struct StickyScroll {
     pub enabled: bool,
 }
 
-#[derive(Copy, Clone, Debug, PartialEq)]
-pub struct SmoothScroll {
-    pub enabled: bool,
-    pub duration: f32,
-}
-
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Toolbar {
     pub breadcrumbs: bool,
