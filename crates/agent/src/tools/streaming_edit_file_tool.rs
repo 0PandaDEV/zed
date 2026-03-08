@@ -108,6 +108,11 @@ pub enum StreamingEditFileMode {
 pub struct Edit {
     /// The exact text to find in the file. This will be matched using fuzzy matching
     /// to handle minor differences in whitespace or formatting.
+    ///
+    /// Always include complete lines. Do not start or end mid-line.
+    /// Be minimal with replacements:
+    /// - For unique lines, include only those lines
+    /// - For non-unique lines, include enough context to identify them
     pub old_text: String,
     /// The text to replace it with
     pub new_text: String,
@@ -567,6 +572,17 @@ impl EditSession {
                 })?;
                 let events = self.parser.finalize_edits(&edits);
                 self.process_events(&events, tool, event_stream, cx)?;
+
+                if log::log_enabled!(log::Level::Debug) {
+                    log::debug!("Got edits:");
+                    for edit in &edits {
+                        log::debug!(
+                            "  old_text: '{}', new_text: '{}'",
+                            edit.old_text.replace('\n', "\\n"),
+                            edit.new_text.replace('\n', "\\n")
+                        );
+                    }
+                }
             }
         }
 
@@ -699,6 +715,7 @@ impl EditSession {
                 ToolEditEvent::OldTextChunk {
                     chunk, done: false, ..
                 } => {
+                    log::debug!("old_text_chunk: done=false, chunk='{}'", chunk);
                     self.pipeline.ensure_resolving_old_text(&self.buffer, cx);
 
                     if let Some(EditPipelineEntry::ResolvingOldText { matcher }) =
@@ -725,6 +742,8 @@ impl EditSession {
                     chunk,
                     done: true,
                 } => {
+                    log::debug!("old_text_chunk: done=true, chunk='{}'", chunk);
+
                     self.pipeline.ensure_resolving_old_text(&self.buffer, cx);
 
                     let Some(EditPipelineEntry::ResolvingOldText { matcher }) =
@@ -767,6 +786,14 @@ impl EditSession {
                     let old_text_in_buffer =
                         snapshot.text_for_range(range.clone()).collect::<String>();
 
+                    log::debug!(
+                        "edit[{}] old_text matched at {}..{}: {:?}",
+                        edit_index,
+                        range.start,
+                        range.end,
+                        old_text_in_buffer,
+                    );
+
                     let text_snapshot = self
                         .buffer
                         .read_with(cx, |buffer, _cx| buffer.text_snapshot());
@@ -786,6 +813,8 @@ impl EditSession {
                 ToolEditEvent::NewTextChunk {
                     chunk, done: false, ..
                 } => {
+                    log::debug!("new_text_chunk: done=false, chunk='{}'", chunk);
+
                     let Some(EditPipelineEntry::StreamingNewText {
                         streaming_diff,
                         edit_cursor,
@@ -821,6 +850,8 @@ impl EditSession {
                 ToolEditEvent::NewTextChunk {
                     chunk, done: true, ..
                 } => {
+                    log::debug!("new_text_chunk: done=true, chunk='{}'", chunk);
+
                     let Some(EditPipelineEntry::StreamingNewText {
                         mut streaming_diff,
                         mut edit_cursor,
@@ -834,6 +865,8 @@ impl EditSession {
                     // Flush any remaining reindent buffer + final chunk.
                     let mut final_text = reindenter.push(chunk);
                     final_text.push_str(&reindenter.finish());
+
+                    log::debug!("new_text_chunk: done=true, final_text='{}'", final_text);
 
                     if !final_text.is_empty() {
                         let char_ops = streaming_diff.push_new(&final_text);
